@@ -6,7 +6,9 @@ const ASSETS = [
   './icon.svg',
   './js/app.js',
   './js/db.js',
-  './js/utils.js'
+  './js/utils.js',
+  './js/prompts.js',
+  './js/prompts.js'
 ];
 
 const FONT_ORIGINS = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
