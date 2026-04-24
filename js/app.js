@@ -1,6 +1,5 @@
-import { openDB, dbGetAll } from './db.js';
+import { openDB, dbGetAll, dbPut } from './db.js';
 import { toast, makeThumb } from './utils.js';
-import { dbPut } from './db.js';
 
 // ============================================================
 //  State
@@ -146,6 +145,9 @@ async function init() {
   prompts = await dbGetAll('prompts');
   prompts.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   updateStats();
+
+  // Load modules (dynamic import to avoid circular dependency)
+  await import('./prompts.js');
 
   // Init registered modules
   for (const mod of Object.values(modeModules)) {
