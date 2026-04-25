@@ -16,10 +16,10 @@ export function initViewer() {
   $('slideWrap')?.addEventListener('click', close);
   $('slideImg')?.addEventListener('click', e => e.stopPropagation());
 
-  // Swipe
+  // Swipe（slideViewは廃止→slideWrapに変更）
   let sx = 0;
-  $('slideView')?.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
-  $('slideView')?.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) move(dx > 0 ? -1 : 1); }, { passive: true });
+  $('slideWrap')?.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  $('slideWrap')?.addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 50) move(dx > 0 ? -1 : 1); }, { passive: true });
 
   // Keyboard
   document.addEventListener('keydown', e => {
@@ -44,13 +44,20 @@ async function open(id) {
   setMode('slide');
   $('viewerOverlay').classList.add('show');
   updateSlide();
+  // ビューアを開く際に横向きを許可
+  try { await screen.orientation.unlock(); } catch {}
 }
 
-function close() { $('viewerOverlay').classList.remove('show'); viewerImages = []; }
+async function close() {
+  $('viewerOverlay').classList.remove('show');
+  viewerImages = [];
+  // ビューアを閉じたら縦向きに戻す
+  try { await screen.orientation.lock('portrait'); } catch {}
+}
 
 function setMode(m) {
   viewerMode = m;
-  $('slideView').classList.toggle('hidden', m !== 'slide');
+  $('slideWrap').classList.toggle('hidden', m !== 'slide');
   $('viewerCatalogView').classList.toggle('hidden', m !== 'catalog');
   $('btnModeSlide').classList.toggle('active', m === 'slide');
   $('btnModeCatalog').classList.toggle('active', m === 'catalog');
