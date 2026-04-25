@@ -1,4 +1,4 @@
-# Prompt Vault v2.1
+# Prompt Vault v2.2
 
 NovelAI で生成した画像とプロンプトを紐づけて管理する PWA ツール。  
 センシティブな画像を安全に扱うことを前提とし、Android ホーム画面からスタンドアロン起動できる。
@@ -51,6 +51,9 @@ prompt-vault-v2/
 - スライドショー（前後移動・スワイプ・キーボード操作）
 - カタログビュー（グリッド一覧、スライドショーと切替可能）
 - 画像ダウンロード
+- **縦向き固定**（PWA 起動時）
+- **ビューア表示中のみ横向き許可**（Screen Orientation API）
+- **横向き時は左サイドバーに操作部を自動切替**（CSS `orientation: landscape` メディアクエリ）
 
 ### グローバルカタログ
 - 全プロンプトの代表サムネイルをテキストなしグリッド表示
@@ -70,6 +73,7 @@ prompt-vault-v2/
 ### PWA
 - Service Worker によるオフラインキャッシュ
 - Android ホーム画面追加でスタンドアロン起動
+- `manifest.json` の `orientation: portrait` により縦向き固定起動
 
 ### インポート / エクスポート
 - プロンプトのみ書き出し（軽量 JSON、PC 編集向き）
@@ -120,3 +124,15 @@ prompt-vault-v2/
 - IndexedDB（raw API）
 - Service Worker（Cache First）
 - Google Fonts: IM Fell English + Noto Sans JP + BIZ UDGothic
+
+## 変更履歴
+
+### v2.2（2026-04-25）
+- ビューア操作部を上部1行バーに統合（旧：viewer-top + slide-controls の2段構成）
+- 横向き時に操作部が左サイドバーへ自動切替（CSS メディアクエリのみ、JS不要）
+- ビューア表示中のみ横向きを許可、閉じると縦向きに復帰（Screen Orientation API）
+- `manifest.json` の `orientation` を `any` → `portrait` に変更
+- Service Worker キャッシュバージョンを `pv-v2.1` → `pv-v2.2` に更新
+
+### v2.1
+- 初期リリース
