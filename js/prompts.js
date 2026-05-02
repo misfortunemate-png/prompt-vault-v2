@@ -1,6 +1,6 @@
 import { dbPut, dbDelete, dbGetByIndex, dbClearByIndex } from './db.js';
 import { toast, esc, resizeImage, makeThumb, copyText } from './utils.js';
-import { prompts, setPrompts, updateStats, registerMode } from './state.js';
+import { prompts, setPrompts, updateStats, registerMode, getSettings } from './state.js';
 
 let activeTag = null;
 let expandedCards = {};
@@ -100,8 +100,10 @@ function renderImgPreview() {
 }
 
 async function handleAddImages(e) {
+  // §7: リサイズ上限・品質を設定値から取得
+  const { imageMaxSize, imageQuality } = getSettings();
   for (const f of Array.from(e.target.files)) {
-    const data = await resizeImage(f, 800, 800, 0.75);
+    const data = await resizeImage(f, imageMaxSize, imageMaxSize, imageQuality);
     editImages.push({ data, id: 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) });
   }
   e.target.value = ''; renderImgPreview();
