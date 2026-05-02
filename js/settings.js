@@ -14,6 +14,8 @@ export function initSettings() {
   renderOrientationSection();
   // §7: 画像品質セクション描画
   renderQualitySection();
+  // デバッグセクション描画
+  renderDebugSection();
 
   // Settings modal
   const ov = document.getElementById('settingsOverlay');
@@ -123,6 +125,78 @@ function renderQualitySection() {
     el.querySelectorAll('[data-qual]').forEach(b => b.classList.toggle('active', b === btn));
     if (v === 0.95 && getSettings().imageMaxSize === 99999) toast('元サイズ維持 + 品質95%はストレージを急速に消費します', 3500);
   });
+}
+
+// デバッグセクション描画
+function renderDebugSection() {
+  const el = document.getElementById('debugSection');
+  if (!el) return;
+  el.innerHTML = `<h3>デバッグ</h3>
+    <div id="debugStorageInfo" style="font-size:12px;color:var(--text-sub);margin-bottom:10px">計測中…</div>
+    <div class="io-btns">
+      <button class="io-btn" id="dbgClearCache">SW キャッシュを削除して再読み込み<span class="io-hint">旧バージョンの除去</span></button>
+      <button class="io-btn" id="dbgClearData" style="color:var(--accent)">全データを削除して再起動<span class="io-hint">完全リセット</span></button>
+    </div>`;
+  updateDebugStorageInfo();
+  document.getElementById('dbgClearCache')?.addEventListener('click', clearCacheAndReload);
+  document.getElementById('dbgClearData')?.addEventListener('click', clearAllDataAndReload);
+}
+
+async function updateDebugStorageInfo() {
+  const el = document.getElementById('debugStorageInfo');
+  if (!el) return;
+  try {
+    if (!navigator.storage?.estimate) { el.textContent = 'ストレージ計測不可'; return; }
+    const { usage, quota } = await navigator.storage.estimate();
+    const useMB = (usage / 1024 / 1024).toFixed(1);
+    const quotaMB = (quota / 1024 / 1024).toFixed(0);
+    const pct = quota > 0 ? Math.round(usage / quota * 100) : 0;
+    el.textContent = `使用中: ${useMB} MB / ${quotaMB} MB (${pct}%)`;
+  } catch { el.textContent = 'ストレージ計測不可'; }
+}
+
+async function clearCacheAndReload() {
+  toast('キャッシュ削除中…');
+  try {
+    // SW キャッシュを全削除
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    // SW に update を要求
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.update();
+    }
+  } catch (e) { console.warn('cache clear error:', e); }
+  location.reload(true);
+}
+
+async function clearAllDataAndReload() {
+  if (!confirm('全データ（プロンプト・画像・設定）を削除して再起動します。この操作は取り消せません。')) return;
+  toast('データ削除中…');
+  try {
+    // SW キャッシュ全削除
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    // SW 登録解除
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    // localStorage 全削除
+    localStorage.clear();
+    // IndexedDB 削除
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase('prompt-vault');
+      req.onsuccess = resolve;
+      req.onerror = reject;
+      req.onblocked = resolve;
+    });
+  } catch (e) { console.warn('data clear error:', e); }
+  location.reload(true);
 }
 
 // §8: ブラウザストレージ使用量表示
