@@ -21,8 +21,6 @@ export function initSettings() {
   const ov = document.getElementById('settingsOverlay');
   document.getElementById('btnSettings')?.addEventListener('click', () => {
     ov.classList.add('show');
-    // §8: モーダルを開くたびにストレージ使用量を更新
-    updateStorageDisplay();
   });
   document.getElementById('settingsClose')?.addEventListener('click', () => ov.classList.remove('show'));
   ov?.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); });
@@ -127,17 +125,28 @@ function renderQualitySection() {
   });
 }
 
-// デバッグセクション描画
+// デバッグセクション描画（<details>で折りたたみ可能）
 function renderDebugSection() {
   const el = document.getElementById('debugSection');
   if (!el) return;
-  el.innerHTML = `<h3>デバッグ</h3>
-    <div id="debugStorageInfo" style="font-size:12px;color:var(--text-sub);margin-bottom:10px">計測中…</div>
-    <div class="io-btns">
-      <button class="io-btn" id="dbgClearCache">SW キャッシュを削除して再読み込み<span class="io-hint">旧バージョンの除去</span></button>
-      <button class="io-btn" id="dbgClearData" style="color:var(--accent)">全データを削除して再起動<span class="io-hint">完全リセット</span></button>
-    </div>`;
-  updateDebugStorageInfo();
+  el.innerHTML = `<details id="debugDetails">
+    <summary style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-sub);cursor:pointer;padding-bottom:6px;border-bottom:1px solid var(--border);list-style:none;display:flex;justify-content:space-between;align-items:center;">
+      デバッグ<span id="debugArrow" style="font-size:12px">›</span>
+    </summary>
+    <div style="padding-top:10px">
+      <div id="debugStorageInfo" style="font-size:12px;color:var(--text-sub);margin-bottom:10px">—</div>
+      <div class="io-btns">
+        <button class="io-btn" id="dbgClearCache">SW キャッシュを削除して再読み込み<span class="io-hint">旧バージョンの除去</span></button>
+        <button class="io-btn" id="dbgClearData" style="color:var(--accent)">全データを削除して再起動<span class="io-hint">完全リセット</span></button>
+      </div>
+    </div>
+  </details>`;
+  const details = document.getElementById('debugDetails');
+  const arrow = document.getElementById('debugArrow');
+  details.addEventListener('toggle', () => {
+    arrow.textContent = details.open ? '∨' : '›';
+    if (details.open) updateDebugStorageInfo();
+  });
   document.getElementById('dbgClearCache')?.addEventListener('click', clearCacheAndReload);
   document.getElementById('dbgClearData')?.addEventListener('click', clearAllDataAndReload);
 }
