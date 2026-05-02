@@ -1,6 +1,6 @@
 import { openDB, dbGetAll, dbPut } from './db.js';
 import { toast, makeThumb, showError } from './utils.js';
-import { prompts, setPrompts, updateStats, getModeModules, loadSettings } from './state.js';
+import { prompts, setPrompts, updateStats, getModeModules, loadSettings, getSettings } from './state.js';
 import { initViewer } from './viewer.js';
 import { initSettings } from './settings.js';
 
@@ -51,6 +51,11 @@ async function migrate() {
 async function init() {
   // §9: 設定を最初に読み込む（他モジュールがgetSettings()を使えるように）
   loadSettings();
+
+  // §6: 常時自由回転モードは起動時に一度unlock
+  if (getSettings().orientation === 'free') {
+    try { await screen.orientation.unlock(); } catch {}
+  }
 
   // Theme (sync, before anything else)
   const saved = localStorage.getItem('pv-theme') || 'classic';

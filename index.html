@@ -555,6 +555,26 @@ header {
 .io-btn:hover { border-color: var(--accent); }
 .io-hint { font-size: 10px; color: var(--text-sub); }
 
+/* ========== Catalog Toolbar ========== */
+.catalog-toolbar {
+  display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px;
+  background: var(--bg-card); border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.catalog-tag-filter { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; flex: 1; min-width: 0; }
+.catalog-sort-bar { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+.catalog-sort-bar select {
+  background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--font-ui); font-size: 12px;
+  padding: 5px 8px; cursor: pointer; border-radius: var(--card-radius); outline: none;
+}
+.sort-dir-btn {
+  padding: 5px 10px; background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text); font-size: 14px; cursor: pointer; transition: all 0.15s;
+  border-radius: var(--card-radius);
+}
+.sort-dir-btn:hover { border-color: var(--accent); }
+
 /* ========== Dict placeholder ========== */
 .dict-placeholder {
   text-align: center; padding: 80px 20px; color: var(--text-sub);
@@ -610,6 +630,17 @@ header {
 
 <!-- カタログモード -->
 <div class="view" id="viewCatalog">
+  <div class="catalog-toolbar" id="catalogToolbar">
+    <div class="catalog-tag-filter" id="catalogTagFilter"></div>
+    <div class="catalog-sort-bar">
+      <select id="catalogSortKey">
+        <option value="createdAt">作成日</option>
+        <option value="updatedAt">更新日</option>
+        <option value="title">タイトル</option>
+      </select>
+      <button class="sort-dir-btn" id="catalogSortDir" data-asc="false">↓</button>
+    </div>
+  </div>
   <div class="global-catalog-grid" id="globalCatalogGrid"></div>
 </div>
 
@@ -691,6 +722,9 @@ header {
           <button class="theme-opt" data-theme="dark">Dark</button>
         </div>
       </div>
+      <div class="settings-section" id="orientationSection"></div>
+      <div class="settings-section" id="qualitySection"></div>
+      <div class="settings-section" id="storageSection"></div>
       <div class="settings-section">
         <h3>外部リンク</h3>
         <div class="link-btns">

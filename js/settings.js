@@ -1,6 +1,6 @@
 import { dbGetByIndex, dbPut, dbClearByIndex, dbGetAll } from './db.js';
 import { toast, makeThumb } from './utils.js';
-import { prompts, setPrompts, updateStats } from './state.js';
+import { prompts, setPrompts, updateStats, getSettings, updateSettings } from './state.js';
 
 export function initSettings() {
   // Theme
@@ -10,9 +10,18 @@ export function initSettings() {
     const btn = e.target.closest('.theme-opt'); if (btn) applyTheme(btn.dataset.theme);
   });
 
+  // §6: 画面方向セクション描画
+  renderOrientationSection();
+  // §7: 画像品質セクション描画
+  renderQualitySection();
+
   // Settings modal
   const ov = document.getElementById('settingsOverlay');
-  document.getElementById('btnSettings')?.addEventListener('click', () => ov.classList.add('show'));
+  document.getElementById('btnSettings')?.addEventListener('click', () => {
+    ov.classList.add('show');
+    // §8: モーダルを開くたびにストレージ使用量を更新
+    updateStorageDisplay();
+  });
   document.getElementById('settingsClose')?.addEventListener('click', () => ov.classList.remove('show'));
   ov?.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); });
 
@@ -55,6 +64,80 @@ async function exportJSON(withImages) {
   a.download = `prompt-vault-${new Date().toISOString().slice(0, 10)}${withImages ? '-full' : ''}.json`;
   a.click(); URL.revokeObjectURL(a.href);
   toast(`${data.prompts.length}件をエクスポートしました`);
+}
+
+// §6: 画面方向セクション描画
+function renderOrientationSection() {
+  const el = document.getElementById('orientationSection');
+  if (!el) return;
+  const cur = getSettings().orientation;
+  const opts = [
+    { val: 'portrait-lock', label: '常時縦固定' },
+    { val: 'viewer-only',   label: 'ビューア時のみ横許可' },
+    { val: 'free',          label: '常時自由回転' }
+  ];
+  el.innerHTML = `<h3>画面方向</h3><div class="theme-options" id="orientationOptions">
+    ${opts.map(o => `<button class="theme-opt${o.val === cur ? ' active' : ''}" data-orient="${o.val}">${o.label}</button>`).join('')}
+  </div>`;
+  el.querySelector('#orientationOptions')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-orient]');
+    if (!btn) return;
+    updateSettings({ orientation: btn.dataset.orient });
+    el.querySelectorAll('[data-orient]').forEach(b => b.classList.toggle('active', b === btn));
+  });
+}
+
+// §7: 画像品質セクション描画
+function renderQualitySection() {
+  const el = document.getElementById('qualitySection');
+  if (!el) return;
+  const s = getSettings();
+  const sizes = [{ v: 800, l: '800px' }, { v: 1200, l: '1200px' }, { v: 99999, l: '元サイズ' }];
+  const quals = [{ v: 0.75, l: '75%' }, { v: 0.85, l: '85%' }, { v: 0.95, l: '95%' }];
+  el.innerHTML = `<h3>画像品質（新規追加時）</h3>
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;color:var(--text-sub);letter-spacing:1px;margin-bottom:6px">リサイズ上限</div>
+      <div class="theme-options" id="sizeOptions">
+        ${sizes.map(o => `<button class="theme-opt${o.v === s.imageMaxSize ? ' active' : ''}" data-size="${o.v}">${o.l}</button>`).join('')}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--text-sub);letter-spacing:1px;margin-bottom:6px">JPEG品質</div>
+      <div class="theme-options" id="qualOptions">
+        ${quals.map(o => `<button class="theme-opt${o.v === s.imageQuality ? ' active' : ''}" data-qual="${o.v}">${o.l}</button>`).join('')}
+      </div>
+    </div>`;
+  el.querySelector('#sizeOptions')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-size]');
+    if (!btn) return;
+    const v = Number(btn.dataset.size);
+    updateSettings({ imageMaxSize: v });
+    el.querySelectorAll('[data-size]').forEach(b => b.classList.toggle('active', b === btn));
+    if (v === 99999) toast('元サイズ維持はストレージを大量消費します', 3000);
+  });
+  el.querySelector('#qualOptions')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-qual]');
+    if (!btn) return;
+    const v = Number(btn.dataset.qual);
+    updateSettings({ imageQuality: v });
+    el.querySelectorAll('[data-qual]').forEach(b => b.classList.toggle('active', b === btn));
+    if (v === 0.95 && getSettings().imageMaxSize === 99999) toast('元サイズ維持 + 品質95%はストレージを急速に消費します', 3500);
+  });
+}
+
+// §8: ブラウザストレージ使用量表示
+async function updateStorageDisplay() {
+  const el = document.getElementById('storageSection');
+  if (!el) return;
+  el.innerHTML = '<h3>ブラウザストレージ使用量</h3><div id="storageInfo" style="font-size:13px;color:var(--text-sub)">計測中…</div>';
+  try {
+    if (!navigator.storage?.estimate) { document.getElementById('storageInfo').textContent = '計測不可'; return; }
+    const { usage, quota } = await navigator.storage.estimate();
+    const useMB = (usage / 1024 / 1024).toFixed(1);
+    const quotaMB = (quota / 1024 / 1024).toFixed(0);
+    const pct = quota > 0 ? Math.round(usage / quota * 100) : 0;
+    document.getElementById('storageInfo').textContent = `使用中: ${useMB} MB / ${quotaMB} MB (${pct}%)`;
+  } catch { document.getElementById('storageInfo').textContent = '計測不可'; }
 }
 
 async function importJSON(event) {

@@ -1,6 +1,6 @@
 import { dbGetByIndex } from './db.js';
 import { toast } from './utils.js';
-import { prompts } from './state.js';
+import { prompts, getSettings } from './state.js';
 
 let viewerImages = [], viewerIdx = 0, viewerMode = 'slide', viewerPid = null;
 
@@ -44,15 +44,23 @@ async function open(id) {
   setMode('slide');
   $('viewerOverlay').classList.add('show');
   updateSlide();
-  // ビューアを開く際に横向きを許可
-  try { await screen.orientation.unlock(); } catch {}
+  // §6: 方向設定に応じた画面制御
+  const orient = getSettings().orientation;
+  try {
+    if (orient === 'viewer-only') await screen.orientation.unlock();
+    else if (orient === 'free') await screen.orientation.unlock();
+    // portrait-lock: 何もしない（縦固定維持）
+  } catch {}
 }
 
 async function close() {
   $('viewerOverlay').classList.remove('show');
   viewerImages = [];
-  // ビューアを閉じたら縦向きに戻す
-  try { await screen.orientation.lock('portrait'); } catch {}
+  // §6: viewer-onlyのみ縦向きに戻す
+  const orient = getSettings().orientation;
+  try {
+    if (orient === 'viewer-only') await screen.orientation.lock('portrait');
+  } catch {}
 }
 
 function setMode(m) {
