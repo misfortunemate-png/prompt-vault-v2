@@ -86,9 +86,10 @@ function renderGrid() {
     return;
   }
 
-  grid.innerHTML = filteredImages.map((img, i) =>
-    `<div class="global-catalog-cell" data-gcidx="${i}" data-src="${img.data}">
-      <img src="" alt="" style="opacity:0;transition:opacity 0.2s">
+  // data-src属性に巨大なdata URLを埋め込まず、インデックスで filteredImages を参照する
+  grid.innerHTML = filteredImages.map((_, i) =>
+    `<div class="global-catalog-cell" data-gcidx="${i}">
+      <img alt="" style="opacity:0;transition:opacity 0.2s">
     </div>`
   ).join('');
 
@@ -97,10 +98,11 @@ function renderGrid() {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
       const cell = entry.target;
-      const img = cell.querySelector('img');
-      if (img && !img.src) {
-        img.src = cell.dataset.src;
-        img.onload = () => { img.style.opacity = 1; };
+      const imgEl = cell.querySelector('img');
+      const idx = +cell.dataset.gcidx;
+      if (imgEl && !imgEl.src && filteredImages[idx]) {
+        imgEl.src = filteredImages[idx].data;
+        imgEl.onload = () => { imgEl.style.opacity = 1; };
       }
       observer.unobserve(cell);
     });
