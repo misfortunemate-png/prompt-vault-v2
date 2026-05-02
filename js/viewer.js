@@ -13,8 +13,18 @@ export function initViewer() {
   $('slideNext')?.addEventListener('click', () => move(1));
   $('slideDl')?.addEventListener('click', download);
   $('viewerClose')?.addEventListener('click', close);
-  $('slideWrap')?.addEventListener('click', close);
-  $('slideImg')?.addEventListener('click', e => e.stopPropagation());
+
+  // §5: 四象限タップ操作（slideWrapクリック→close を廃止し四象限判定に変更）
+  $('slideWrap')?.addEventListener('click', e => {
+    const wrap = $('slideWrap');
+    const rect = wrap.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    const isRight = x >= rect.width / 2, isBottom = y >= rect.height / 2;
+    if (!isBottom && !isRight) close();                // 左上: 閉じる
+    else if (!isBottom && isRight) setMode('catalog'); // 右上: カタログ切替
+    else if (isBottom && !isRight) move(-1);           // 左下: 前の画像
+    else move(1);                                      // 右下: 次の画像
+  });
 
   // Swipe（slideViewは廃止→slideWrapに変更）
   let sx = 0;
@@ -31,26 +41,39 @@ export function initViewer() {
 
   // Listen for open requests from any module
   document.addEventListener('pv:openViewer', e => open(e.detail));
+
+  // §3: カタログからの横断スライドショー開始
+  document.addEventListener('pv:openViewerBatch', e => openBatch(e.detail.images, e.detail.startIndex));
+}
+
+// §3: カタログからバッチ（フィルタ・ソート済み全画像）でビューアを開く
+async function openBatch(images, startIndex) {
+  if (!images?.length) return;
+  viewerImages = images;
+  viewerIdx = Math.max(0, Math.min(images.length - 1, startIndex));
+  viewerPid = images[viewerIdx]?.promptId || null;
+  setMode('slide');
+  $('viewerOverlay').classList.add('show');
+  updateSlide();
+  const orient = getSettings().orientation;
+  try {
+    if (orient === 'viewer-only' || orient === 'free') await screen.orientation.unlock();
+  } catch {}
 }
 
 async function open(id) {
   const p = prompts.find(x => x.id === id);
   if (!p || !p.imageCount) return;
   viewerPid = id;
-  $('viewerTitle').textContent = p.title;
   const imgs = await dbGetByIndex('images', 'promptId', id);
   imgs.sort((a, b) => a.order - b.order);
   viewerImages = imgs; viewerIdx = 0;
   setMode('slide');
   $('viewerOverlay').classList.add('show');
   updateSlide();
-  // §6: 方向設定に応じた画面制御
+  // §6: 方向設定に応じた画面制御（portrait-lock時は何もしない）
   const orient = getSettings().orientation;
-  try {
-    if (orient === 'viewer-only') await screen.orientation.unlock();
-    else if (orient === 'free') await screen.orientation.unlock();
-    // portrait-lock: 何もしない（縦固定維持）
-  } catch {}
+  try { if (orient !== 'portrait-lock') await screen.orientation.unlock(); } catch {}
 }
 
 async function close() {
@@ -80,6 +103,10 @@ function updateSlide() {
   $('slideInfo').textContent = `${viewerIdx + 1} / ${viewerImages.length}`;
   $('slidePrev').disabled = viewerIdx === 0;
   $('slideNext').disabled = viewerIdx === viewerImages.length - 1;
+  // §3: 現在画像の親プロンプトタイトルを動的に更新
+  const pid = viewerImages[viewerIdx]?.promptId;
+  const p = pid ? prompts.find(x => x.id === pid) : null;
+  $('viewerTitle').textContent = p?.title || '';
 }
 
 function move(dir) { viewerIdx = Math.max(0, Math.min(viewerImages.length - 1, viewerIdx + dir)); updateSlide(); }
