@@ -1,6 +1,6 @@
 import { openDB, dbGetAll, dbPut } from './db.js';
 import { toast, makeThumb, showError } from './utils.js';
-import { prompts, setPrompts, updateStats, getModeModules } from './state.js';
+import { prompts, setPrompts, updateStats, getModeModules, loadSettings } from './state.js';
 import { initViewer } from './viewer.js';
 import { initSettings } from './settings.js';
 
@@ -49,6 +49,9 @@ async function migrate() {
 //  Init
 // ============================================================
 async function init() {
+  // §9: 設定を最初に読み込む（他モジュールがgetSettings()を使えるように）
+  loadSettings();
+
   // Theme (sync, before anything else)
   const saved = localStorage.getItem('pv-theme') || 'classic';
   document.body.setAttribute('data-theme', saved);
