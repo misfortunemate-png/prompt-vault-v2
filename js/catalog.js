@@ -86,24 +86,25 @@ function renderGrid() {
     return;
   }
 
-  // data-src属性に巨大なdata URLを埋め込まず、インデックスで filteredImages を参照する
+  // セルを空で生成し、Observer発火時にcreateElementでimg追加（src属性の曖昧な挙動を回避）
   grid.innerHTML = filteredImages.map((_, i) =>
-    `<div class="global-catalog-cell" data-gcidx="${i}">
-      <img alt="" style="opacity:0;transition:opacity 0.2s">
-    </div>`
+    `<div class="global-catalog-cell" data-gcidx="${i}"></div>`
   ).join('');
 
-  // §1: Intersection Observerで画面内セルのみ画像を設定
+  // §1: Intersection Observerで画面内セルのみimgを生成・追加
   observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
       const cell = entry.target;
-      const imgEl = cell.querySelector('img');
+      if (cell.querySelector('img')) return; // 既にロード済み
       const idx = +cell.dataset.gcidx;
-      if (imgEl && !imgEl.src && filteredImages[idx]) {
-        imgEl.src = filteredImages[idx].data;
-        imgEl.onload = () => { imgEl.style.opacity = 1; };
-      }
+      if (!filteredImages[idx]) return;
+      const imgEl = document.createElement('img');
+      imgEl.alt = '';
+      imgEl.style.cssText = 'width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 0.2s';
+      imgEl.onload = () => { imgEl.style.opacity = '1'; };
+      imgEl.src = filteredImages[idx].data;
+      cell.appendChild(imgEl);
       observer.unobserve(cell);
     });
   }, { rootMargin: '200px' });
